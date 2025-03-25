@@ -3,6 +3,16 @@ entries:
   showroom:
   - apiVersion: v2
     appVersion: 1.0.0
+    created: "2025-03-25T00:09:50.61003314Z"
+    description: Deploys the Showroom front-end
+    digest: 3533bfa7cc76fdc0c25b4fb3494dce50ee3a5f54691b7344c6844c61fa3a8966
+    name: showroom
+    type: application
+    urls:
+    - https://github.com/agonzalezrh/showroom-deployer/releases/download/showroom-0.4.9/showroom-0.4.9.tgz
+    version: 0.4.9
+  - apiVersion: v2
+    appVersion: 1.0.0
     created: "2023-11-21T20:52:41.943975331Z"
     description: Deploys the Showroom front-end
     digest: 03c77120bd13ca45e7c72b4f9c611db25947ad38dbfa683cd3238a8854c47ca6
@@ -682,4 +692,4 @@ entries:
     urls:
     - https://github.com/rhpds/showroom-deployer/releases/download/showroom-single-pod-0.0.3/showroom-single-pod-0.0.3.tgz
     version: 0.0.3
-generated: "2025-01-30T01:59:44.455488283Z"
+generated: "2025-03-25T00:09:50.791713921Z"
