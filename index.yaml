@@ -214,6 +214,16 @@ entries:
   showroom-single-pod:
   - apiVersion: v2
     appVersion: 1.0.0
+    created: "2025-04-03T22:40:30.418916612Z"
+    description: Deploys the Showroom front-end in a single pod
+    digest: cc9a31b52687cb2b53d0255e96610b883a42e6b5ee936184addba17383605e0d
+    name: showroom-single-pod
+    type: application
+    urls:
+    - https://github.com/agonzalezrh/showroom-deployer/releases/download/showroom-single-pod-1.4.1/showroom-single-pod-1.4.1.tgz
+    version: 1.4.1
+  - apiVersion: v2
+    appVersion: 1.0.0
     created: "2025-04-03T22:18:34.253293734Z"
     description: Deploys the Showroom front-end in a single pod
     digest: a5e804d0475a1348b6405541d4e800fedc0574a8dd1b758a5a48bc432489d9b5
@@ -762,4 +772,4 @@ entries:
     urls:
     - https://github.com/rhpds/showroom-deployer/releases/download/showroom-single-pod-0.0.3/showroom-single-pod-0.0.3.tgz
     version: 0.0.3
-generated: "2025-04-03T22:18:34.253606587Z"
+generated: "2025-04-03T22:40:30.419136334Z"
