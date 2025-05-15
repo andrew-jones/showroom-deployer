@@ -1,0 +1,43 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-caddy
+  namespace: {{ .Release.Namespace}}
+data:
+  00_content.caddy: |
+    # Configuration for the /content/ endpoint
+    handle_path /content/* {
+        root * /usr/share/caddy
+        # Enable the static file server.
+        file_server
+    }
+  01_logs.caddy: |
+    # Configuration for the /content/ endpoint
+    handle_path /logs/* {
+        root * /usr/share/caddy/logs
+        # Enable the static file server.
+        file_server {
+          browse {
+            sort time desc
+          }
+        }
+    }
+  02_runner.caddy: |
+    handle_path /runner/* {
+        uri strip_prefix /runner
+        reverse_proxy localhost:80
+    }
+  03_wetty.caddy: |
+    handle_path /wetty/* {
+        rewrite * /wetty{uri}
+        reverse_proxy localhost:8001
+    }
+    handle_path /wetty {
+        rewrite * /wetty
+        reverse_proxy localhost:8001
+    }
+  99_nookbag.caddy: |
+    handle { # Fallback catch all for nookbag
+        reverse_proxy localhost:8080
+    }

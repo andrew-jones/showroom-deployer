@@ -1,0 +1,52 @@
+---
+# Default values for showroom.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+guid: nnnnn
+
+deployer:
+  domain: cluster-GUID.GUID.sandboxNUMBERS.opentlc.com
+
+proxy:
+  image: quay.io/rhpds/nginx:1.25
+  #  image: docker.io/library/nginx:1.25
+  imagePullPolicy: IfNotPresent
+
+content:
+  # Only create a content pane, no other tabs will be available
+  contentOnly: "false"
+  image: ghcr.io/rhpds/showroom-content:prod
+  imagePullPolicy: IfNotPresent
+  repoUrl: https://github.com/rhpds/showroom_template_default.git
+  repoRef: main
+  antoraPlaybook: default-site.yml
+  resources:
+    limits:
+      memory: 64Mi
+    requests:
+      cpu: 100m
+      memory: 64Mi
+  user_data: |
+    bastion_password: from_helm
+
+wetty:
+  setup: "true"
+  image: quay.io/rhpds/wetty:latest
+  name: wetty
+  display_name: "Login Terminal 1"
+  port: 8001
+  resources:
+    limits:
+      memory: 256Mi
+    requests:
+      cpu: 500m
+      memory: 256Mi
+  ssh:
+    autoSshToBastion: "false"
+    sshHost: shared-410-bastion.openshift.redhatworkshops.io
+    sshPort: 22
+    sshUser: ec2-user
+    sshAuth: password
+    sshPass: password
+
