@@ -1,0 +1,175 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Release.Name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Release.Name }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      initContainers:
+      - name: git-cloner
+        image: quay.io/rhpds/git-cloner:v0.0.1
+        env:
+        - name: GIT_REPO_URL
+          value: {{.Values.content.repoUrl}}
+        - name: GIT_REPO_REF
+          value: {{.Values.content.repoRef}}
+        volumeMounts:
+        - mountPath: /files
+          name: {{ .Release.Name }}-files
+      - name: antora-builder
+        image: docker.io/antora/antora:3.1.10
+        command: ['sh', '-c', "until [ -f .git-cloner ]; do echo waiting for files; sleep 1; done; echo Generating Antora content...; antora --stacktrace site.yml; echo done; tree;"]
+        volumeMounts:
+        - mountPath: /antora
+          name: {{ .Release.Name }}-files
+      - name: setup-automation
+        image: 'quay.io/rhpds/zerotouch-automation:v0.0.2'
+        workingDir: /app # TODO, fix this in the image
+        command: ['sh', '-c', "until [ -f .git-cloner ]; do echo waiting for files; sleep 1; done; python cli/main.py ./setup-automation setup || true"]
+        env:
+        - name: ANSIBLE_USER
+          value: {{ .Values.wetty.ssh.sshUser }}
+        - name: ANSIBLE_PASSWORD
+          value: {{ .Values.wetty.ssh.sshPass }}
+        - name: DEBUG
+          value: "true"
+        volumeMounts:
+        # Mount the setup-automation files
+        - mountPath: /app/setup-automation
+          name: {{ .Release.Name }}-files
+          subPath: setup-automation
+        # Need to mount the file created by the git cloner as we don't mount the whole directory
+        - mountPath: /app/.git-cloner
+          name: {{ .Release.Name }}-files
+          subPath: .git-cloner
+        # Mount the log directory
+        - mountPath: /app/logs
+          name: {{ .Release.Name }}-logs
+        terminationMessagePolicy: File
+      containers:
+      - name: runtime-automation
+        image: 'quay.io/rhpds/zerotouch-automation:v0.0.2'
+        env:
+        - name: ANSIBLE_USER
+          value: {{ .Values.wetty.ssh.sshUser }}
+        - name: ANSIBLE_PASSWORD
+          value: {{ .Values.wetty.ssh.sshPass }}
+        - name: DEBUG
+          value: "true"
+        ports:
+        - name: runner
+          containerPort: 80
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /app/runtime-automation
+          name: {{ .Release.Name }}-files
+          subPath: runtime-automation
+        # Mount the log directory
+        - mountPath: /app/logs
+          name: {{ .Release.Name }}-logs
+      - name: nookbag
+        image: quay.io/andrew-jones/nookbag:v0.0.2
+        imagePullPolicy: {{ .Values.content.imagePullPolicy }}
+        volumeMounts:
+        - mountPath: /var/www/html/www
+          name: {{ .Release.Name }}-files
+          subPath: "www/www"
+        - mountPath: /var/www/html/ui-config.yml
+          name: {{ .Release.Name }}-files
+          subPath: "ui-config.yml"
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+      - name: content
+        image: quay.io/rhpds/caddy:v0.0.1
+        imagePullPolicy: {{ .Values.content.imagePullPolicy }}
+        volumeMounts:
+        - mountPath: /usr/share/caddy
+          name: {{ .Release.Name }}-files
+          subPath: "www/www"
+        - mountPath: /etc/caddy/includes
+          name: caddy-config
+        # Mount the log directory
+        - mountPath: /usr/share/caddy/logs
+          name: {{ .Release.Name }}-logs
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+
+{{- if eq .Values.wetty.setup "true" }}
+      - name: wetty
+        image: {{ .Values.wetty.image }}
+        imagePullPolicy: IfNotPresent
+        args:
+        - --base="/wetty"
+        - --port={{ .Values.wetty.port }}
+{{-   if eq .Values.wetty.ssh.autoSshToBastion "true" }}
+        - --ssh-host={{ .Values.wetty.ssh.sshHost }}
+        - --ssh-port={{ .Values.wetty.ssh.sshPort }}
+        - --ssh-user={{ .Values.wetty.ssh.sshUser }}
+        - --ssh-auth={{ .Values.wetty.ssh.sshAuth }}
+        - --ssh-pass={{ .Values.wetty.ssh.sshPass }}
+        - --allow-iframe
+{{-   end }}
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: GUID
+          value: "{{ .Values.guid }}"
+        ports:
+        - containerPort: {{ .Values.wetty.port }}
+          protocol: TCP
+        resources:
+          {{- toYaml .Values.wetty.resources | nindent 10 }}
+{{- end }}
+
+      volumes:
+      - name: runner
+        emptyDir: {}
+      - name: showroom
+        emptyDir: {}
+      - name: user-data
+        configMap:
+          name: {{ .Release.Name }}-userdata
+      - name: content
+        configMap:
+          name: {{ .Release.Name }}-index
+      - name: nginx-config
+        configMap:
+          defaultMode: 420
+          name: {{ .Release.Name }}-proxy-config
+      - name: nginx-pid
+        emptyDir: {}
+      - name: nginx-cache
+        emptyDir: {}
+      - name: {{ .Release.Name }}-files
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-files
+      - name: caddy-config
+        configMap:
+          name: {{ .Release.Name }}-caddy
+      - name: {{ .Release.Name }}-logs
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-logs
