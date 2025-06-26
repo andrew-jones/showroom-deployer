@@ -19,7 +19,7 @@ spec:
       serviceAccountName: {{ .Release.Name }}
       initContainers:
       - name: git-cloner
-        image: quay.io/rhpds/git-cloner:v0.0.1
+        image: quay.io/rhpds/git-cloner:v0.0.8
         env:
         - name: GIT_REPO_URL
           value: {{.Values.content.repoUrl}}
