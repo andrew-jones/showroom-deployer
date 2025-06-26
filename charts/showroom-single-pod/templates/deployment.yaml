@@ -106,8 +106,10 @@ spec:
         env:
           - name: ANSIBLE_USER
             value: {{ .Values.wetty.ssh.sshUser }}
-          - name: BASTION_PASSWORD
+          - name: ANSIBLE_PASSWORD
             value: {{ .Values.wetty.ssh.sshPass }}
+          - name: DEBUG
+            value: "true"
         ports:
           - name: runner
             containerPort: 80
@@ -149,24 +151,17 @@ spec:
           containerPort: 8080
 
       - name: content
-        image: {{ .Values.content.image }}
+        image: quay.io/rhpds/caddy:v0.0.1
         imagePullPolicy: {{ .Values.content.imagePullPolicy }}
-        env:
-        - name: GIT_REPO_URL
-          value: {{ .Values.content.repoUrl }}
-        - name: GIT_REPO_REF
-          value: {{ .Values.content.repoRef }}
-        - name: ANTORA_PLAYBOOK
-          value: {{ .Values.content.antoraPlaybook }}
-        - name: ZT_BUNDLE
-          value: {{ .Values.content.zero_touch_bundle }}
-        - name: ZT_UI_ENABLED
-          value: "{{ .Values.content.zero_touch_ui_enabled }}"
         volumeMounts:
-        - name: user-data
-          mountPath: /user_data/
-        - name: showroom
-          mountPath: /showroom/
+        - mountPath: /usr/share/caddy
+          name: {{ .Release.Name }}-files
+          subPath: "www/www"
+        - mountPath: /etc/caddy/includes
+          name: caddy-config
+        # Mount the log directory
+        - mountPath: /usr/share/caddy/logs
+          name: {{ .Release.Name }}-logs
         ports:
         - containerPort: 8000
           protocol: TCP
