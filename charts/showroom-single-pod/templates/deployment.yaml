@@ -157,8 +157,6 @@ spec:
         - mountPath: /usr/share/caddy
           name: {{ .Release.Name }}-files
           subPath: "www/www"
-        - mountPath: /etc/caddy/includes
-          name: caddy-config
         # Mount the log directory
         - mountPath: /usr/share/caddy/logs
           name: {{ .Release.Name }}-logs
