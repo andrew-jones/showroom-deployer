@@ -116,6 +116,9 @@ spec:
           subPath: runtime-automation
         - mountPath: /app/logs
           name: {{ .Release.Name }}-logs
+        - mountPath: /app/artifacts
+          name: {{ .Release.Name }}-artifacts
+
       - name: nginx
         image: {{ .Values.proxy.image }}
         imagePullPolicy: {{ .Values.proxy.imagePullPolicy }}
@@ -418,6 +421,9 @@ spec:
         # persistentVolumeClaim:
         #   claimName: {{ .Release.Name }}-files
       - name: {{ .Release.Name }}-logs
+        emptyDir: {}
+      # TODO maybe store these in /tmp, can we configure via env?
+      - name: {{ .Release.Name }}-artifacts
         emptyDir: {}
       - name: runner
         emptyDir: {}
