@@ -95,7 +95,7 @@ spec:
 {{- end }}
       containers:
       - name: runner
-        image: 'quay.io/rhpds/zerotouch-automation:v0.0.2'
+        image: 'quay.io/rhpds/zerotouch-automation:v0.0.3'
         imagePullPolicy: Always
         env:
           - name: ANSIBLE_USER
@@ -335,7 +335,7 @@ spec:
 {{- end }}
 
 {{- if eq .Values.cloud.setup "true" }}
-      - name: cloud 
+      - name: cloud
         image: {{ .Values.cloud.image }}
         imagePullPolicy: IfNotPresent
         env:
