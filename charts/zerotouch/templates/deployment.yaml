@@ -2,23 +2,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "zerotouch.fullname" . }}
+  name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "zerotouch.labels" . | nindent 4 }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      {{- include "zerotouch.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/name: {{ .Release.Name }}
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        {{- include "zerotouch.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/name: {{ .Release.Name }}
     spec:
-      serviceAccountName: {{ include "zerotouch.fullname" . }}
+      serviceAccountName: {{ .Release.Name }}
       initContainers:
       - name: git-cloner
         image: {{ .Values.git_cloner.image }}
@@ -31,7 +29,7 @@ spec:
           value: "/showroom/repo"
         volumeMounts:
         - mountPath: /showroom/repo
-          name: {{ include "zerotouch.fullname" . }}-files
+          name: {{ .Release.Name }}-files
           subPath: repo
         resources:
           {{- toYaml .Values.git_cloner.resources | nindent 10 }}
@@ -47,16 +45,16 @@ spec:
         - name: ZT_BUNDLE
           value: {{ .Values.content.zero_touch_bundle | quote }}
         - name: ZT_UI_ENABLED
-          value: {{ .Values.content.zero_touch_ui_enabled | quote }}
+          value: "{{ .Values.content.zero_touch_ui_enabled }}"
 
         volumeMounts:
         - mountPath: /showroom/repo
-          name: {{ include "zerotouch.fullname" . }}-files
+          name: {{ .Release.Name }}-files
           subPath: repo
         - name: user-data
           mountPath: /user_data/
         - mountPath: /showroom/www
-          name: {{ include "zerotouch.fullname" . }}-files
+          name: {{ .Release.Name }}-files
           subPath: www
         resources:
           {{- toYaml .Values.antora.resources | nindent 10 }}
@@ -73,13 +71,13 @@ spec:
           - name: BASTION_HOST
             value: {{ .Values.wetty.ssh.sshHost | quote }}
           - name: BASTION_PORT
-            value: {{ .Values.wetty.ssh.sshPort | quote }}
+            value: "{{ .Values.wetty.ssh.sshPort }}"
           - name: BASTION_USER
             value: {{ .Values.wetty.ssh.sshUser | quote }}
           - name: BASTION_PASSWORD
             value: {{ .Values.wetty.ssh.sshPass | quote }}
           - name: GUID
-            value: {{ .Values.guid | quote }}
+            value: "{{ .Values.guid }}"
           - name: DOMAIN
             value: {{ .Values.deployer.domain | quote }}
           - name: SATELLITE_URL
@@ -92,10 +90,6 @@ spec:
             value: {{ .Values.deployer.registry_pull_token | quote }}
           - name: VAULT_PASSWORD
             value: {{ .Values.setup_automation.vault_password | quote }}
-          - name: FORCE_SETUP
-            value: {{ .Values.setup_automation.force | quote }}
-          - name: SETUP_STATE_DIR
-            value: "/setup-state"
 {{- if eq .Values.cloud.setup "true" }}
           - name: CLOUD_PROVIDER
             value: {{ .Values.cloud.auth_cloud_provider | quote }}
@@ -110,7 +104,7 @@ spec:
           - name: AWS_WEB_CONSOLE_PASSWORD
             value: {{ .Values.cloud.aws_web_console_password | quote }}
           - name: AWS_SANDBOX_ACCOUNT_ID
-            value: {{ .Values.cloud.aws_sandbox_account_id | quote }}
+            value: "{{ .Values.cloud.aws_sandbox_account_id }}"
           - name: AWS_ROUTE53_DOMAIN
             value: {{ .Values.cloud.aws_route53_domain | quote }}
           - name: AWS_DEFAULT_REGION
@@ -135,8 +129,6 @@ spec:
         volumeMounts:
           - name: runner
             mountPath: /runner/
-          - name: setup-state
-            mountPath: /setup-state
         terminationMessagePolicy: File
         image: {{ .Values.setup_automation.image }}
 {{- end }}
@@ -156,9 +148,9 @@ spec:
           - name: ANSIBLE_PASSWORD
             value: {{ .Values.wetty.ssh.sshPass | quote }}
           - name: BASTION_PORT
-            value: {{ .Values.wetty.ssh.sshPort | quote }}
+            value: "{{ .Values.wetty.ssh.sshPort }}"
           - name: GUID
-            value: {{ .Values.guid | quote }}
+            value: "{{ .Values.guid }}"
           - name: DOMAIN
             value: {{ .Values.deployer.domain | quote }}
           - name: REGISTRY_PULL_TOKEN
@@ -185,7 +177,7 @@ spec:
           - name: AWS_WEB_CONSOLE_PASSWORD
             value: {{ .Values.cloud.aws_web_console_password | quote }}
           - name: AWS_SANDBOX_ACCOUNT_ID
-            value: {{ .Values.cloud.aws_sandbox_account_id | quote }}
+            value: "{{ .Values.cloud.aws_sandbox_account_id }}"
           - name: AWS_ROUTE53_DOMAIN
             value: {{ .Values.cloud.aws_route53_domain | quote }}
           - name: AWS_DEFAULT_REGION
@@ -213,13 +205,13 @@ spec:
         imagePullPolicy: IfNotPresent
         volumeMounts:
           - mountPath: /app/runtime-automation
-            name: {{ include "zerotouch.fullname" . }}-files
+            name: {{ .Release.Name }}-files
             subPath: repo/runtime-automation
           - mountPath: /app/artifacts
-            name: {{ include "zerotouch.fullname" . }}-files
+            name: {{ .Release.Name }}-files
             subPath: artifacts
           - mountPath: /app/logs
-            name: {{ include "zerotouch.fullname" . }}-files
+            name: {{ .Release.Name }}-files
             subPath: logs
         terminationMessagePolicy: File
         image: {{ .Values.runtime_automation.image }}
@@ -231,6 +223,8 @@ spec:
         - mountPath: /etc/nginx/nginx.conf
           name: nginx-config
           subPath: nginx.conf
+        - mountPath: /data/www
+          name: content
         - mountPath: /var/cache/nginx
           name: nginx-cache
         - mountPath: /var/run
@@ -241,7 +235,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: GUID
-          value: {{ .Values.guid | quote }}
+          value: "{{ .Values.guid }}"
         - name: DOMAIN
           value: {{ .Values.deployer.domain | quote }}
         ports:
@@ -259,19 +253,19 @@ spec:
         - name: ZT_BUNDLE
           value: {{ .Values.content.zero_touch_bundle | quote }}
         - name: ZT_UI_ENABLED
-          value: {{ .Values.content.zero_touch_ui_enabled | quote }}
+          value: "{{ .Values.content.zero_touch_ui_enabled }}"
         - name: GUID
-          value: {{ .Values.guid | quote }}
+          value: "{{ .Values.guid }}"
         - name: DOMAIN
           value: {{ .Values.deployer.domain | quote }}
         volumeMounts:
         - name: user-data
           mountPath: /user_data/
         - mountPath: /showroom/repo
-          name: {{ include "zerotouch.fullname" . }}-files
+          name: {{ .Release.Name }}-files
           subPath: repo
         - mountPath: /showroom/www
-          name: {{ include "zerotouch.fullname" . }}-files
+          name: {{ .Release.Name }}-files
           subPath: www
         ports:
         - containerPort: 8000
@@ -297,7 +291,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: GUID
-          value: {{ .Values.guid | quote }}
+          value: "{{ .Values.guid }}"
         volumeMounts:
         - name: terminal-lab-user-home
           mountPath: /home/lab-user
@@ -318,11 +312,11 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: GUID
-          value: {{ $.Values.guid | quote }}
+          value: "{{ $.Values.guid }}"
         - name: RUNCOMMAND
-          value: {{ $terminal.command | quote }}
+          value: "{{ $terminal.command }}"
         - name: PORT
-          value: {{ add $.Values.terminal.port 1 $i | quote }}
+          value: "{{ add $.Values.terminal.port 1 $i }}"
         volumeMounts:
         - name: terminal-lab-user-home
           mountPath: /home/lab-user
@@ -332,6 +326,42 @@ spec:
         resources:
           {{- toYaml $.Values.terminal.resources | nindent 10 }}
 {{- end }}
+{{- end }}
+
+{{- if eq .Values.ocpconsole.setup "true" }}
+      - name: console-app
+        image: "quay.io/openshift/origin-console:4.14"
+        env:
+          - name: BRIDGE_BRANDING
+            value: openshift
+          - name: BRIDGE_USER_AUTH
+            value: disabled
+          - name: BRIDGE_K8S_MODE
+            value: off-cluster
+          - name: BRIDGE_K8S_MODE_OFF_CLUSTER_ENDPOINT
+            value: https://kubernetes.default
+          - name: BRIDGE_K8S_MODE_OFF_CLUSTER_SKIP_VERIFY_TLS
+            value: "true"
+          - name: BRIDGE_K8S_AUTH
+            value: bearer-token
+          - name: BRIDGE_BASE_PATH
+            value: "/console/"
+          - name: BRIDGE_K8S_AUTH_BEARER_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: console-secret
+                key: token
+        ports:
+        - containerPort: 9000
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /console/
+            port: 9000
+        readinessProbe:
+          httpGet:
+            path: /console/
+            port: 9000
 {{- end }}
 
 {{- if eq .Values.wetty.setup "true" }}
@@ -354,7 +384,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: GUID
-          value: {{ .Values.guid | quote }}
+          value: "{{ .Values.guid }}"
         ports:
         - containerPort: {{ .Values.wetty.port }}
           protocol: TCP
@@ -380,7 +410,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: GUID
-          value: {{ $.Values.guid | quote }}
+          value: "{{ $.Values.guid }}"
         ports:
         - containerPort: {{ add $.Values.wetty.port 1 $i }}
           protocol: TCP
@@ -410,7 +440,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: GUID
-          value: {{ $.Values.guid | quote }}
+          value: "{{ $.Values.guid }}"
         ports:
         - containerPort: {{ add $.Values.wetty.port ($.Values.wetty.ssh.sshOtherHosts | len) 1 $i }}
           protocol: TCP
@@ -454,7 +484,7 @@ spec:
         - name: AWS_WEB_CONSOLE_PASSWORD
           value: {{ .Values.cloud.aws_web_console_password | quote }}
         - name: AWS_SANDBOX_ACCOUNT_ID
-          value: {{ .Values.cloud.aws_sandbox_account_id | quote }}
+          value: "{{ .Values.cloud.aws_sandbox_account_id }}"
         - name: AWS_ROUTE53_DOMAIN
           value: {{ .Values.cloud.aws_route53_domain | quote }}
         - name: AWS_DEFAULT_REGION
@@ -508,7 +538,7 @@ spec:
         - name: BASTION_HOST
           value: {{ .Values.wetty.ssh.sshHost | quote }}
         - name: BASTION_PORT
-          value: {{ .Values.wetty.ssh.sshPort | quote }}
+          value: "{{ .Values.wetty.ssh.sshPort }}"
         - name: BASTION_USER
           value: {{ .Values.wetty.ssh.sshUser | quote }}
         - name: BASTION_PASSWORD
@@ -522,22 +552,22 @@ spec:
           {{- toYaml .Values.monitoring.resources | nindent 10 }}
 
       volumes:
-      - name: {{ include "zerotouch.fullname" . }}-files
+      - name: {{ .Release.Name }}-files
         emptyDir: {}
-{{- if eq .Values.setup_automation.setup "true" }}
       - name: runner
         emptyDir: {}
-      - name: setup-state
-        persistentVolumeClaim:
-          claimName: {{ include "zerotouch.fullname" . }}-setup-state
-{{- end }}
+      - name: showroom
+        emptyDir: {}
       - name: user-data
         configMap:
-          name: {{ include "zerotouch.fullname" . }}-userdata
+          name: {{ .Release.Name }}-userdata
+      - name: content
+        configMap:
+          name: {{ .Release.Name }}-index
       - name: nginx-config
         configMap:
           defaultMode: 420
-          name: {{ include "zerotouch.fullname" . }}-proxy-config
+          name: {{ .Release.Name }}-proxy-config
       - name: nginx-pid
         emptyDir: {}
       - name: nginx-cache
@@ -546,7 +576,7 @@ spec:
       - name: terminal-lab-user-home
 {{-   if eq .Values.terminal.storage.setup "true" }}
         persistentVolumeClaim:
-          claimName: {{ include "zerotouch.fullname" . }}-terminal-lab-user-home
+          claimName: {{ .Release.Name }}-terminal-lab-user-home
 {{-   else }}
         emptyDir: {}
 {{-   end }}

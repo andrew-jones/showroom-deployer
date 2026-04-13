@@ -2,10 +2,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "zerotouch.fullname" . }}-userdata
+  name: {{ .Release.Name }}-userdata
   namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "zerotouch.labels" . | nindent 4 }}
 data:
   user_data.yml: |
 {{ .Values.content.user_data | indent 4 }}
